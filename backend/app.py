@@ -23,9 +23,11 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/home")
 def home():
-    return("started...")
+    file_list = os.listdir("data/gnostic_texts")
+    txt_file = [f for f in file_list if f.endswith('.txt')]
+    return({"files" : txt_file})
 
 def clean_text(text):
     # Remove brackets but keep the content inside
