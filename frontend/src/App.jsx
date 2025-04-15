@@ -9,8 +9,10 @@ function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <div>
-      <Home />
+    <div className='parent-container'>
+      <div className='content-container'>
+        <Home />
+      </div>
     </div>
   )
 }

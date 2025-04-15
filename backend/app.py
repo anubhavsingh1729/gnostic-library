@@ -29,6 +29,13 @@ def home():
     txt_file = [f for f in file_list if f.endswith('.txt')]
     return({"files" : txt_file})
 
+@app.get("/get_text")
+def get_book_text(file : str):
+    file_path = os.path.join("data/gnostic_texts",file)
+    with open(file_path,"r",encoding='utf-8') as f:
+        text = f.read()
+    return(text)
+
 def clean_text(text):
     # Remove brackets but keep the content inside
     text = re.sub(r'[\[\]\(\)\{\}]', '', text)
@@ -62,4 +69,4 @@ def find_match(query:str):
 
     for idx,val in zip(topind,topscore):
         result.append((bible_text[idx], f"score: {val:.4f}"))
-    return result
+    return({"result":result})
