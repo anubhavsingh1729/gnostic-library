@@ -65,7 +65,7 @@ def find_match(query:str):
     similarities = util.cos_sim(query_embedding, bible_embeddings)[0]
     k = 10
     topscore,topind = torch.topk(similarities,k=k)
-    result=[sent]
+    result=[]
 
     # for i,s in enumerate(sent):
     #     idx = topind[i].item()
