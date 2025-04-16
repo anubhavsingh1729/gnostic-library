@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api"
+import "../css/home.css"
 
 const Home = () => {
     const [booklist, setBookList] = useState([]);
@@ -40,10 +41,10 @@ const Home = () => {
         const selectedText = selection.toString();
         if (selectedText) {
             const response = await api.get("/search" , {params : {query : selectedText}});
+            const result = response.data.result;
+            alert(result);
             setSemanticMatch(response.data.result)
         }
-
-        alert(semanticMatch)
     };
 
     useEffect (() => {
@@ -55,22 +56,22 @@ const Home = () => {
             {loading ? (
                 <p>loading</p>
             ) : (
-                <div className="book-list">
-                <ul>
+                <ul className="book-list">
                     {booklist.map((book,index)=>(
                         <li onClick={() => getBookText(book)} style={{cursor:"pointer"}}>
                             {book}
                         </li>
                     ))}
                 </ul>
-                </div>
             )}
 
             {text && (
                 <div className="book-text" onMouseUp={handleTextSelection}
-                style={{whiteSpace: "pre-wrap", cursor:"text"}}
+                style={{cursor:"text"}}
                 >
-                    {text}
+                    <h2>{text.title}</h2>
+                    <h3>{text.translator}</h3>
+                    <p>{text.body}</p>
                 </div>
             )}
         </div>

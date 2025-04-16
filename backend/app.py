@@ -26,15 +26,20 @@ app.add_middleware(
 @app.get("/home")
 def home():
     file_list = os.listdir("data/gnostic_texts")
-    txt_file = [f for f in file_list if f.endswith('.txt')]
+    txt_file = sorted([f.split('.')[0].strip() for f in file_list if f.endswith('.txt')])
     return({"files" : txt_file})
 
 @app.get("/get_text")
 def get_book_text(file : str):
     file_path = os.path.join("data/gnostic_texts",file)
-    with open(file_path,"r",encoding='utf-8') as f:
+    with open(file_path+".txt","r",encoding='utf-8') as f:
         text = f.read()
-    return(text)
+    i = text.split('--',1)
+    ii = i[1].split(":",1)
+    title = i[0].strip()
+    translator = ii[0].strip()
+    body = ii[1].strip()
+    return({"title":title, "translator" : translator, "body" : body})
 
 def clean_text(text):
     # Remove brackets but keep the content inside
@@ -52,7 +57,6 @@ def clean_text(text):
 def create_embedding(text):
     sent = clean_text(text)
     embeddings = model.encode([sent],convert_to_numpy=True)
-    print(sent)
     return sent,embeddings
 
 @app.get("/search")
