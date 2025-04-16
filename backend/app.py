@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import torch
 import re
+import json
 
 app = FastAPI()
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -31,15 +32,19 @@ def home():
 
 @app.get("/get_text")
 def get_book_text(file : str):
-    file_path = os.path.join("data/gnostic_texts",file)
-    with open(file_path+".txt","r",encoding='utf-8') as f:
-        text = f.read()
-    i = text.split('--',1)
-    ii = i[1].split(":",1)
-    title = i[0].strip()
-    translator = ii[0].strip()
-    body = ii[1].strip()
-    return({"title":title, "translator" : translator, "body" : body})
+    # file_path = os.path.join("data/gnostic_texts",file)
+    # with open(file_path+".txt","r",encoding='utf-8') as f:
+    #     text = f.read()
+    # i = text.split('--',1)
+    # ii = i[1].split(":",1)
+    # title = i[0].strip()
+    # translator = ii[0].strip()
+    # body = ii[1].strip()
+    # return({"title":title, "translator" : translator, "body" : body})
+    with open("data/gnostic_chunks.json","r") as f:
+        gnostic = json.load(f)
+    
+    return {"title":file, "body":gnostic[file]}
 
 def clean_text(text):
     # Remove brackets but keep the content inside
@@ -72,5 +77,5 @@ def find_match(query:str):
     #     result.append((bible_text[idx],topscore[i].item()))
 
     for idx,val in zip(topind,topscore):
-        result.append((bible_text[idx], f"score: {val:.4f}"))
+        result.append((bible_text[idx]))
     return({"result":result})

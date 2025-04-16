@@ -90,8 +90,9 @@ const Home = () => {
                 style={{cursor:"text"}}
                 >
                     <h2>{text.title}</h2>
-                    <h3>{text.translator}</h3>
-                    <p>{text.body}</p>
+                    {text.body.map((verse,index)=>(
+                        <p>{verse}</p>
+                    ))}
                 </div>
             )}
 
