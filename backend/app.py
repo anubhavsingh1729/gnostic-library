@@ -8,6 +8,7 @@ import os
 import torch
 import re
 import json
+import requests
 
 app = FastAPI()
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -80,4 +81,36 @@ def find_match(query:str):
 
     for idx,val in zip(topind,topscore):
         result.append((bible_text[idx],round(val.item(),2)))
-    return({"result":result})
+
+    mistral = ask_mistral(query,result)["response"]
+    print(mistral)
+
+    return({"result":result, "mistral":mistral})
+
+def build_prompt(query, matches):
+    prompt = f"Compare the following Nag Hammadi verse with Bible verses and explain if there is a relationship or alignment.\n\n"
+    prompt += f"Nag Hammadi:\n\"{query}\"\n\n"
+    prompt += "Bible Verses:\n"
+    for i, (verse, score) in enumerate(matches, 1):
+        prompt += f"{i}. \"{verse}\" (similarity score: {score:.2f})\n"
+
+    prompt += "\nWhich of these verses aligns most with the Nag hammadi verse? Explain the nature of the relationship like paraphrase, shared themes, message, polemic refutation, inversion, heretical teaching)."
+    return prompt
+
+def ask_mistral(query,result):
+    prompt = build_prompt(query,result)
+    print("fetching...")
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "mistral",
+            "prompt": prompt,
+            "stream": False  # stream=True for token-wise responses
+        }
+    )
+    if response.status_code == 200:
+        print("done.")
+        result = response.json()
+        return {"response": result["response"]}
+    else:
+        return {"error": response.text}
