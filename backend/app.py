@@ -62,14 +62,16 @@ def clean_text(text):
 def create_embedding(text):
     sent = clean_text(text)
     embeddings = model.encode([sent],convert_to_numpy=True)
-    return sent,embeddings
+    return embeddings
 
 @app.get("/search")
 def find_match(query:str):
-    sent, query_embedding = create_embedding(query)
+    query_embedding = create_embedding(query)
     similarities = util.cos_sim(query_embedding, bible_embeddings)[0]
-    k = 10
+    k=10
     topscore,topind = torch.topk(similarities,k=k)
+    botscore,botind = torch.topk(-similarities,k=k)
+    print(topscore)
     result=[]
 
     # for i,s in enumerate(sent):
@@ -77,5 +79,5 @@ def find_match(query:str):
     #     result.append((bible_text[idx],topscore[i].item()))
 
     for idx,val in zip(topind,topscore):
-        result.append((bible_text[idx]))
+        result.append((bible_text[idx],round(val.item(),2)))
     return({"result":result})

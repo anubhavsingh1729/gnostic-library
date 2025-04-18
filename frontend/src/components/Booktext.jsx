@@ -1,6 +1,8 @@
 import { useLocation } from "react-router-dom";
 import { useState } from "react"
-import "../css/home.css"
+import "../css/booktext.css"
+
+import api from "../api"
 
 const BookText = () => {
 
@@ -21,7 +23,7 @@ const BookText = () => {
             setSelectedText(selectedText)
             const response = await api.get("/search" , {params : {query : selectedText}});
             const result = response.data.result;
-            setSemanticMatch(response.data.result)
+            setSemanticMatch(result)
         } else {
             setButtonPosition(null);
             setSelectedText("");
@@ -36,7 +38,7 @@ const BookText = () => {
     };
 
     return (
-        <div className="book">
+        <div className="text-container">
             <div className="book-text" onMouseUp={handleTextSelection}
             style={{cursor:"text"}}
             >
@@ -45,7 +47,7 @@ const BookText = () => {
                     <p>{verse}</p>
                 ))}
             </div>
-            {buttonPosition && (
+            {/* {buttonPosition && (
                 <button
                     style={{
                         position:"absolute",
@@ -54,7 +56,24 @@ const BookText = () => {
                         zIndex:1000,
                     }}
                     onClick={handleCompare}
-                    >view</button>
+                    >compare</button>
+            )} */}
+
+            {!selectedText && (
+                <div className="placeholder">
+                    <h3>Select text to compare with Canonical Scripture</h3>
+                </div>
+            )}
+            {selectedText && (
+                <div className="bible-text">
+                    <h2>Canonical Texts</h2>
+                    {semanticMatch.map((t,i)=> (
+                        <ul>
+                            <li key={i}>{`${t[0]}`}</li>
+                            <p>{`similarity ${(t[1]*100).toFixed(0)}%`}</p>
+                        </ul>
+                    ))}
+                </div>
             )}
         </div>
     )
