@@ -13,8 +13,14 @@ import requests
 app = FastAPI()
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-bible_embeddings = np.load("data/bible_embeddings.npy")
-bible_text = np.load("data/bible_sent.npy")
+bible_embeddings = np.load("data/bible_chunk_embeddings.npy")
+bible_text = np.load("data/bible_chunks.npy")
+
+with open("data/gnostic_chunks.json","r") as f:
+    gnostic = json.load(f)
+
+
+comparisions = {}
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,19 +38,7 @@ def home():
     return({"files" : txt_file})
 
 @app.get("/get_text")
-def get_book_text(file : str):
-    # file_path = os.path.join("data/gnostic_texts",file)
-    # with open(file_path+".txt","r",encoding='utf-8') as f:
-    #     text = f.read()
-    # i = text.split('--',1)
-    # ii = i[1].split(":",1)
-    # title = i[0].strip()
-    # translator = ii[0].strip()
-    # body = ii[1].strip()
-    # return({"title":title, "translator" : translator, "body" : body})
-    with open("data/gnostic_chunks.json","r") as f:
-        gnostic = json.load(f)
-    
+def get_book_text(file : str):    
     return {"title":file, "body":gnostic[file]}
 
 def clean_text(text):
@@ -65,47 +59,34 @@ def create_embedding(text):
     embeddings = model.encode([sent],convert_to_numpy=True)
     return embeddings
 
-@app.get("/search")
-def find_match(query:str):
-    query_embedding = create_embedding(query)
-    similarities = util.cos_sim(query_embedding, bible_embeddings)[0]
-    k=10
-    topscore,topind = torch.topk(similarities,k=k)
-    botscore,botind = torch.topk(-similarities,k=k)
-    print(topscore)
-    result=[]
+def find_match(query):
+    all_matches = []
+    for q in query:
+        query_embedding = create_embedding(q)
+        similarities = util.cos_sim(query_embedding, bible_embeddings)[0]
+        k=1
+        topscore,topind = torch.topk(similarities,k=k)
+        result=[]
 
-    # for i,s in enumerate(sent):
-    #     idx = topind[i].item()
-    #     result.append((bible_text[idx],topscore[i].item()))
+        for idx,val in zip(topind,topscore):
+            #result.append((bible_text[idx],round(val.item(),2)))
+            result.append(bible_text[idx])
+        all_matches.extend(result)
+    return({"result":all_matches})
 
-    for idx,val in zip(topind,topscore):
-        result.append((bible_text[idx],round(val.item(),2)))
 
-    mistral = ask_mistral(query,result)["response"]
-    print(mistral)
-
-    return({"result":result, "mistral":mistral})
-
-def build_prompt(query, matches):
-    prompt = f"Compare the following Nag Hammadi verse with Bible verses and explain if there is a relationship or alignment.\n\n"
-    prompt += f"Nag Hammadi:\n\"{query}\"\n\n"
-    prompt += "Bible Verses:\n"
-    for i, (verse, score) in enumerate(matches, 1):
-        prompt += f"{i}. \"{verse}\" (similarity score: {score:.2f})\n"
-
-    prompt += "\nWhich of these verses aligns most with the Nag hammadi verse? Explain the nature of the relationship like paraphrase, shared themes, message, polemic refutation, inversion, heretical teaching)."
+def sum_prompt(text, book):
+    prompt = f""" Summarize the following text from the book : {book}. In the summary include core themes, ideas and theology presented
+                text : {text}"""
     return prompt
 
-def ask_mistral(query,result):
-    prompt = build_prompt(query,result)
-    print("fetching...")
+def get_llm(prompt):
     response = requests.post(
         "http://localhost:11434/api/generate",
         json={
             "model": "mistral",
             "prompt": prompt,
-            "stream": False  # stream=True for token-wise responses
+            "stream": False 
         }
     )
     if response.status_code == 200:
@@ -114,3 +95,35 @@ def ask_mistral(query,result):
         return {"response": result["response"]}
     else:
         return {"error": response.text}
+
+def explain(text1,text2,book1, book2):
+    prompt = f''' for the given texts of {book1}, compare it with provided biblical passages.
+    determine if their themes, ideas, theology align somewhere. If they differ explain the differences. 
+    Quote from the given passages to show any of the following: similarity, inversion, refutation or alternate theology.
+    {book1}: {text1}\n\n {book2}: {text2}
+return the output as numbered list of answers'''
+    
+    return get_llm(prompt)
+
+@app.get("/compare")
+def compare_bible(book):
+
+    if book in comparisions.keys():
+        return({"result":comparisions[book]})
+    
+    text = gnostic[book]
+    bible = find_match(text)
+    # for gn in text:
+    #     bible.extend(find_match(gn))
+    bible_text = " ".join(bible)
+    
+    print("summarizing...")
+    sum_gnostic = get_llm(sum_prompt(" ".join(text),book))
+    #sum_bible = get_llm(sum_prompt(bible,'bible'))
+    
+    print("explaining...")
+    result = explain(sum_gnostic['response'],bible_text, book, 'bible')
+    result = result['response'].split('\n\n')
+    comparisions[book] = result
+    return ({"result":result})
+
