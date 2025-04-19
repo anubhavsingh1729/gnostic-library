@@ -13,8 +13,8 @@ import requests
 app = FastAPI()
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-bible_embeddings = np.load("data/bible_chunk_embeddings.npy")
-bible_text = np.load("data/bible_chunks.npy")
+bible_embeddings = np.load("data/bible_embeddings.npy")
+bible_text = np.load("data/bible_sent.npy")
 
 with open("data/gnostic_chunks.json","r") as f:
     gnostic = json.load(f)
